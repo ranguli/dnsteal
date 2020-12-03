@@ -11,7 +11,7 @@ import base64
 RED = "\033[1;31m"
 RESET = "\033[0m"
 
-VERSION = "2.0"
+VERSION = "3.0"
 
 
 class DNSQuery:
@@ -205,7 +205,6 @@ if __name__ == "__main__":
         except (TypeError, ValueError):
             usage(f"{RED}[Error]{RESET} Port argument must be an integer.")
             sys.exit(1)
-
 
     if re.match(regx_ip, ip) is None:
         usage("{RED}[Error]{RESET} First argument must be listen address.")
