@@ -197,6 +197,15 @@ if __name__ == "__main__":
         sys.exit(1)
 
     ip = sys.argv[1]
+    port = 53
+
+    if len(sys.argv) > 2:
+        try:
+            port = int(sys.argv[2])
+        except (TypeError, ValueError):
+            usage(f"{RED}[Error]{RESET} Port argument must be an integer.")
+            sys.exit(1)
+
 
     if re.match(regx_ip, ip) is None:
         usage("{RED}[Error]{RESET} First argument must be listen address.")
@@ -221,12 +230,12 @@ if __name__ == "__main__":
     udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     try:
-        udp.bind((ip, 53))
+        udp.bind((ip, port))
     except socket.error:
-        print(f"{RED}[Error]{RESET} Cannot bind to address {ip}:53")
+        print(f"{RED}[Error]{RESET} Cannot bind to address {ip}:{port}")
         sys.exit(1)
 
-    print(f"[+] DNS listening on {ip}:53'")
+    print(f"[+] DNS listening on {ip}:{port}")
     p_cmds(s, b, ip, z)
     print("[+] Once files have sent, use Ctrl+C to exit and save.\n")
 
@@ -261,7 +270,7 @@ if __name__ == "__main__":
 
             print(f"[>] len: '{len(p.data_text)} bytes'\t- {fname}")
             if v:
-                print(f"[>>] {p.data_text} -> {ip} :53")
+                print(f"[>>] {p.data_text} -> {ip} :{port}")
 
             for d in tmp_data:
                 r_data[fname].append(d)
