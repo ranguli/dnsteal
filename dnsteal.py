@@ -11,44 +11,44 @@ import base64
 RED = "\033[1;31m"
 RESET = "\033[0m"
 
-VERSION = "3.0"
+VERSION = "2.0"
 
 
 class DNSQuery:
     def __init__(self, data):
-        self.data = data
-        self.data_text = ""
+        self.data = bytearray(data)
+        self.data_text = b''
 
-        tipo = (ord(data[2]) >> 3) & 15  # Opcode bits
+        tipo = (data[2] >> 3) & 15  # Opcode bits
         if tipo == 0:  # Standard query
             ini = 12
-            lon = ord(data[ini])
+            lon = data[ini]
         while lon != 0:
-            self.data_text += data[ini + 1 : ini + lon + 1] + "."
+            self.data_text += data[ini + 1 : ini + lon + 1] + b'.'
             ini += lon + 1
-            lon = ord(data[ini])
+            lon = data[ini]
+
+        self.data_text = self.data_text.decode("utf-8")
 
     def request(self, ip):
-        packet = ""
+        """ Creates a DNS response packet to be sent back to the client """
+
+        packet = b''
         if self.data_text:
-            packet += self.data[:2] + "\x81\x80"
+            packet += self.data[:2] + b'\x81\x80'
             packet += (
-                self.data[4:6] + self.data[4:6] + "\x00\x00\x00\x00"
+                self.data[4:6] + self.data[4:6] + b'\x00\x00\x00\x00'
             )  # Questions and Answers Counts
-            packet += self.data[12:]  # Original Domain Name Question
-            packet += "\xc0\x0c"  # Pointer to domain name
-            packet += "\x00\x01\x00\x01\x00\x00\x00\x3c\x00\x04"  # Response type, ttl and resource data length -> 4 bytes
-            packet += str.join(
-                "", map(lambda x: chr(int(x)), ip.split("."))
-            )  # 4bytes of IP
+            packet += self.data[12:] # Original Domain Name Question
+            packet += b'\xc0\x0c'  # Pointer to domain name
+            packet += b'\x00\x01\x00\x01\x00\x00\x00\x3c\x00\x04'  # Response type, TTL, and resource data length -> 4 bytes
+            packet += "".join(map(lambda x: chr(int(x)), ip.split("."))).encode("utf-8") # Represent the IP address in 4 bytes
         return packet
 
 
 def save_to_file(r_data, z, v):
 
-    print("\n")
-
-    for key, value in r_data.iteritems():
+    for key, value in r_data.items():
         file_seed = time.strftime("%Y-%m-%d_%H-%M-%S")
         fname = f"recieved_{file_seed}_{key}"
         flatdata = ""
@@ -59,20 +59,12 @@ def save_to_file(r_data, z, v):
             )  # fix data (remove hyphens at end, replace * with + because of dig!)
 
         try:
-            with open(fname, "wb") as f:
-                f.read()
-        except IOError:
-            print(f"{RED}[Error]{RESET} Opening file {fname} to save data.")
-            sys.exit(1)
-
-        try:
             if v:
-                print(f"[Info] base64 decoding data ({key}).")
+                print(f"[Info] base64 decoding data ({key.decode('utf-8')}).")
             flatdata = base64.b64decode(
                 flatdata
             )  # test if padding correct by using a try/catch
         except (ValueError, TypeError):
-            f.close()
             print(f"{RED}[Error]{RESET} Incorrect padding on base64 encoded data..")
             sys.exit(1)
 
@@ -90,15 +82,25 @@ def save_to_file(r_data, z, v):
                 sys.exit(1)
 
             print(f"[Info] Saving recieved bytes to './{fname}'")
-            f.write(flatdata)
-            f.close()
+            try:
+                with open(fname, "wb") as f:
+                    f.write(flatdata)
+            except IOError:
+                print(f"{RED}[Error]{RESET} Opening file {fname} to save data.")
+                sys.exit(1)
+
         else:
-            print(f"[Info]{RESET} Saving bytes to './{fname}'")
-            f.write(flatdata)
-            f.close()
+            print(f"[Info] Saving bytes to './{fname}'")
+
+            try:
+                with open(fname, "wb") as f:
+                    f.write(flatdata)
+            except IOError:
+                print(f"{RED}[Error]{RESET} Opening file {fname} to save data.")
+                sys.exit(1)
 
         with open(fname, "r") as f:
-            md5sum = hashlib.md5(f.read()).hexdigest()
+            md5sum = hashlib.md5(f.read().encode("utf-8")).hexdigest()
             print(f"[md5sum] {md5sum}")
 
 
@@ -246,9 +248,10 @@ if __name__ == "__main__":
 
             data, addr = udp.recvfrom(1024)
             p = DNSQuery(data)
+            # Send back a response
             udp.sendto(p.request(ip), addr)
 
-            req_split = p.data_text.split(".")
+            req_split = p.data_text.split('.')
             req_split.pop()  # fix trailing dot... cba to fix this
 
             dlen = len(req_split)
