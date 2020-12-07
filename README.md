@@ -1,11 +1,11 @@
 # dnsteal
 
-This is a DNS exfiltration tool that uses a custom protocol to transmit arbitrary (compressed and encoded) JSON data over DNS, and can reassemble the data on the other end - even if it arrives in a different order from that which it was sent in. It does not require running or setting up a real DNS server, opting instead for a fake one written in Python, and does not even need to be able to reach the fake server directly, taking advantage of DNS hierarchy. 
+This is a DNS exfiltration tool that uses a custom protocol to transmit arbitrary (compressed and encoded) JSON data over DNS, and can reassemble the data on the other end - even if it arrives in a different order from that which it was sent in. It does not require running or setting up a real DNS server, opting instead for a fake one written in Python, and does not even need to be able to reach the fake server directly, taking advantage of DNS hierarchy.
 
 This is particularly useful in a cloud environment such as AWS, because it means that you can still exfiltrate data under the following conditions:
 
   * You can't change the targets DNS server to one of your choice,
-  * Are not able to make outbound DNS connections 
+  * Are not able to make outbound DNS connections
   * Are stuck using an internal resolver.
 
 The counter to this of course is to figure out a way to do DNS filtering in your cloud provider (i.e AWS). This requires a bit of effort because you don't control the internal DNS resolvers.
@@ -23,6 +23,7 @@ Other features include:
 
  * Target machine (with Python 3)
  * Server machine (also with Python 3)
+ * Domain name that resolves to the server machine.
 
 That's it! It does not require:
 
@@ -30,7 +31,7 @@ That's it! It does not require:
 * The setup of a real DNS server
 * Root privileges*
 
-\**Root privileges aren't needed on the client, but may be needed on the server depending on what port you run it on.* 
+\**Root privileges aren't needed on the client, but may be needed on the server depending on what port you run it on.*
 
 ### Basic exfiltration example
 

